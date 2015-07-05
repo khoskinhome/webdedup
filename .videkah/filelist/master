@@ -1,8 +1,15 @@
 
+./sql/get_dups.sql
 
 ./sql/create_db.sql
 ./sql/create_db_dump.sql
 
+
+
+./lib/get_dups.pl
+
+
+./lib/remove-non-existent.pl
 
 ./lib/testrun.pl
 ./lib/Webdedup/File.pm

@@ -14,11 +14,40 @@ Version 0.01
 
 =cut
 
+our $DEBUG=0;
 our $VERSION = '0.01';
 
 use Data::Dumper;
 use Image::ExifTool qw(:Public);
 use Digest::SHA ;
+
+#my @path = (
+#
+#    "/media/khoskin/2tb/a_KARL/pictures-201105-main/ali",
+##    "/media/nas_khoskin_private/pictures/pictures-20150628/",
+##    "/media/khoskin/2tb/a_KARL/pictures-201105-main/",
+#);
+#
+sub get_paths {
+    return (
+
+    "/media/khoskin/2tb/a_KARL/pictures-201105-main/ali",
+    #"/media/nas_khoskin_private/pictures/pictures-20150628/",
+    #"/media/khoskin/2tb/a_KARL/pictures-201105-main/",
+    )
+};
+
+
+sub all_mounted {
+
+    # TODO a check that makes sure all drives are mounted.
+
+    return 0 if not -d "/media/khoskin/2tb/a_KARL";
+    return 0 if not -d "/media/nas_khoskin_private/pictures/";
+
+    return 1;
+}
+
 
 {
 
@@ -143,7 +172,125 @@ sub get_picture_file_extension {
     return;
 }
 
-#
+
+
+sub is_valid_shortfilename {
+
+    my ($class, $shortfilename ) = @_; 
+
+    return 0 if $shortfilename eq ".dedup.storable";
+    return 0 if $shortfilename eq "Thumbs.db";
+    return 0 if $shortfilename eq "ZbThumbnail.info";
+    return 0 if $shortfilename eq ".DS_Store";
+    return 0 if $shortfilename =~ /\.CTG$/;
+    return 0 if $shortfilename =~ /\.html$/i;
+    return 0 if $shortfilename =~ /\.lnk$/i;
+    return 0 if $shortfilename =~ /\.ini$/i;
+    return 0 if $shortfilename =~ /\.DAT$/;
+
+    return 1;
+
+}
+
+{
+    use DBI;
+    use DBD::mysql;
+
+    my $dsn="dbi:mysql:webdedup:localhost:3306";
+
+    my $dbh;
+
+    if ( not $dbh = DBI->connect($dsn,"webdedup","insecure")){
+        die "havent't got a handle\n";
+    };
+
+    sub get_dbh {
+        return $dbh;
+    }
+
+    sub select_file {
+        my ( $class, $file ) = @_;
+
+        my $sth = $dbh->prepare("select * from files where fullfilename=?");
+
+        my $rv = $sth->execute($file);
+
+        my $ret ={};
+        my $count = 0 ;
+        for my $row ( $sth->fetchrow_hashref ) {
+            die "too many results" if $count > 0;
+            $count++;
+            $ret = $row
+        }
+
+        return $ret;
+    }
+
+    sub insert_file {
+        my ( $class, $record ) = @_;
+
+        print "DEBUG : INSERT $record->{fullfilename}\n" if $DEBUG;
+
+        my $fields = '';
+        my $values = '';
+        my @values =() ;
+        for my $field ( keys %$record ) {
+            $fields .= ',' if $fields;
+            $values .= ',' if $values;
+            $fields .= "$field";
+            $values .= "?";
+            push @values, $record->{$field};
+        }
+
+        my $sql = "insert into files ($fields) VALUES ( $values )";
+        print $sql."\n" if $DEBUG;
+
+        my $sth = $dbh->prepare( $sql );
+
+        my $rv = $sth->execute(@values);
+
+    }
+
+
+    sub update_file {
+        my ( $class, $record ) = @_;
+
+        print "DEBUG : UPDATE $record->{fullfilename}\n" if $DEBUG;
+
+        my $fields = '';
+        my @values = ();
+        for my $field ( keys %$record ) {
+            next if $field eq 'fullfilename';
+            next if $field eq 'file_id';
+
+            $fields .= ',' if $fields;
+            $fields .= "$field=?";
+            push @values, $record->{$field};
+        }
+
+        push @values , $record->{fullfilename};
+
+        my $sql = "update files set $fields where fullfilename=? ";
+        print $sql."\n" if $DEBUG;
+
+        my $sth = $dbh->prepare($sql);
+
+        my $rv = $sth->execute(@values);
+
+    }
+
+
+    sub delete_file_id {
+        my ( $class, $file_id ) = @_;
+
+        my $sth = $dbh->prepare("delete from files where file_id=?");
+
+        my $rv = $sth->execute($file_id);
+    }
+
+
+}
+
 #=head2 destination_filename_exif
 #
 #=cut
