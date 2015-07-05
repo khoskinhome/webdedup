@@ -12,7 +12,7 @@ select distinct(contents_sha), count(contents_sha), sum(filesize),filesize FROM 
 
 
 
-
+select count(distinct(contents_sha) ) from files;
 
 
 
