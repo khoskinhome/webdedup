@@ -13,3 +13,5 @@
 
 ./lib/testrun.pl
 ./lib/Webdedup/File.pm
+
+./lib/crap.pl

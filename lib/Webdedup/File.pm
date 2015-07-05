@@ -31,23 +31,38 @@ use Digest::SHA ;
 sub get_paths {
     return (
 
-    "/media/khoskin/2tb/a_KARL/pictures-201105-main/ali",
-    #"/media/nas_khoskin_private/pictures/pictures-20150628/",
-    #"/media/khoskin/2tb/a_KARL/pictures-201105-main/",
+    #"/media/khoskin/2tb/a_KARL/pictures-201105-main/ali",
+    "/media/khoskin/2tb/a_KARL/pictures-201105-main/",
+    "/media/nas_khoskin_private/pictures/pictures-20150628/",
     )
 };
 
+{
+    # A list of dirs that are mounted on different drives
+    # These are not the mount point. They are the next level down.
+    # They will therefore not exist if the drive isn't mounted.
+    my %dirs = (
+        "/media/khoskin/2tb/a_KARL"            => 1,
+        "/media/nas_khoskin_private/pictures/" => 1,
+    );
 
-sub all_mounted {
+    sub all_mounted {
+        # a check that makes sure all drives are mounted.
+        for my $dir ( keys %dirs ){
+            return 0 if not -d $dir;
+        }
+        return 1;
+    }
 
-    # TODO a check that makes sure all drives are mounted.
-
-    return 0 if not -d "/media/khoskin/2tb/a_KARL";
-    return 0 if not -d "/media/nas_khoskin_private/pictures/";
-
-    return 1;
+    sub get_mount_dir {
+        my ($class, $file ) = @_;
+        for my $dir ( keys %dirs ){
+            return $dir if
+                $file =~ m{^$dir};
+        }
+        die "can't find file $file\n";
+    }
 }
-
 
 {
 
